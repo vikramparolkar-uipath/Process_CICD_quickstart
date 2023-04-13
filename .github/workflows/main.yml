@@ -22,6 +22,6 @@ jobs:
                  # Build the Package
                  $outputDir = Join-Path $env:GITHUB_WORKSPACE "Output"
                  & "C:\\uipathcli\\tools\\uipcli.exe" package pack "$($env:GITHUB_WORKSPACE)\project.json" --output "$outputDir" --autoVersion --outputType Tests 
-                 & "C:\\uipathcli\\tools\\uipcli.exe" test run "https://staging.uipath.com" "${{secrets.TENANT_NAME}}" -A ${{secrets.ACCOUNT_NAME}} -I ${{secrets.OAUTH_CLIENT_ID}} -S "${{secrets.OAUTH_CLIENT_SECRET}}" -P "$outputDir" -r "C:\results.json"
+                 & "C:\\uipathcli\\tools\\uipcli.exe" test run "https://staging.uipath.com" "${{secrets.TENANT_NAME}}" -A ${{secrets.ACCOUNT_NAME}} -I ${{secrets.OAUTH_CLIENT_ID}} -S "${{secrets.OAUTH_CLIENT_SECRET}}" -P "$outputDir" -r "C:\results.json" --applicationScope "OR.Folders OR.BackgroundTasks OR.TestSets OR.TestSetExecutions OR.TestSetSchedules OR.Settings.Read OR.Monitoring OR.Robots.Read OR.Machines.Read OR.Execution OR.Assets OR.Users.Read OR.Jobs"
                  & "C:\\uipathcli\\tools\\uipcli.exe" package deploy "$outputDir" "https://staging.uipath.com" "${{secrets.TENANT_NAME}}" -A ${{secrets.ACCOUNT_NAME}} -I ${{secrets.OAUTH_CLIENT_ID}} -S "${{secrets.OAUTH_CLIENT_SECRET}}" -o "Sandbox/Vikram Parolkar" --applicationScope "OR.Folders OR.BackgroundTasks OR.TestSets OR.TestSetExecutions OR.TestSetSchedules OR.Settings.Read OR.Monitoring OR.Robots.Read OR.Machines.Read OR.Execution OR.Assets OR.Users.Read OR.Jobs"
                           
