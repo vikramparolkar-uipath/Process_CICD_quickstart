@@ -1,4 +1,4 @@
-name: UiPathRunTests
+name: CICD Demo
 on:
   push:
     branches:
@@ -9,31 +9,25 @@ jobs:
     steps:            
       # Checkout code from this repo
       - name: Checkout Code
-        uses: actions/checkout@v2      
-      # Facilitate the UiPath CLI in the github artifacts
+        uses: actions/checkout@v3
+      # Facilitate the UiPath CLI in the github artifacts   
       - name: Get UiPath CLI
         run: |
                  New-Item -Path "C:\\" -ItemType "directory" -Name "uipathcli";
-                 Invoke-WebRequest "https://uipath.pkgs.visualstudio.com/Public.Feeds/_packaging/UiPath-Official/nuget/v3/flat2/UiPath.CLI.Windows/22.10.8417.12290/UiPath.CLI.Windows.22.10.8417.12290.nupkg" -OutFile "C:\UiPath.CLI.Windows.22.10.8417.12290.zip"
-                 Expand-Archive -LiteralPath "C:\UiPath.CLI.Windows.22.10.8417.12290.zip" -Destination "C:\\uipathcli"
+                 Invoke-WebRequest "https://uipath.pkgs.visualstudio.com/Public.Feeds/_packaging/UiPath-Official/nuget/v3/flat2/UiPath.CLI.Windows/23.2.8467.25277/UiPath.CLI.Windows.23.2.8467.25277.nupkg" -OutFile "C:\UiPath.CLI.Windows.23.2.8467.25277.zip"
+                 Expand-Archive -LiteralPath "C:\UiPath.CLI.Windows.23.2.8467.25277.zip" -Destination "C:\\uipathcli"
       # Use uipcli to package and deploy (for each project.json found)                           
-      - name: Pack and Deploy
+      - name: Pack
         run: |
-                foreach($package in Get-ChildItem -Path ${{ github.workspace }} -Recurse -Filter project.json -File)
-                       {    
-                          # Get some data from the package.json for package naming
-                          $json = Get-Content "$package" | Out-String | ConvertFrom-Json
-                          $foo = $json.projectVersion
-                          $Name=$json.name
-                          echo "::set-output name=PATH::$package"
-                          echo $foo
-                          $v= [version] "$foo"
-                          $newversion= "{0}.{1}.{2}.{3}" -f $v.Major, $v.Minor, ($v.Build),"${{github.run_number}}"
-                          $VERSION=[string]$newversion
-                          echo $VERSION
-                          echo $Name
-                          echo ${{ github.workspace }}\$Name.$VERSION.nupkg
-                          # Build and Deploy the Package
-                          & "C:\\uipathcli\\tools\\uipcli.exe" package pack "$package" -o "${{ github.workspace }}" -v $VERSION -l en-US
-                          & "C:\\uipathcli\\tools\\uipcli.exe" package deploy "${{ github.workspace }}\$($Name).$VERSION.nupkg" "https://cloud.uipath.com" "${{secrets.UAT_TENANT_NAME}}" -A ${{secrets.ACCOUNT_NAME}} -I ${{secrets.OAUTH_CLIENT_ID}} -S "${{secrets.OAUTH_CLIENT_SECRET}}" -o "Shared" --applicationScope "${{secrets.OAUTH_CLIENT_SCOPES}}"
-                       }
+                 # Build the Package
+                 $outputDir = Join-Path $env:GITHUB_WORKSPACE "Output"
+                 & "C:\\uipathcli\\tools\\uipcli.exe" package pack "$($env:GITHUB_WORKSPACE)\project.json" --output "$outputDir" --autoVersion --outputType Tests 
+      - name: Test
+        run: |
+                 # Test the Package
+                 & "C:\\uipathcli\\tools\\uipcli.exe" test run "https://staging.uipath.com" "${{secrets.TENANT_NAME}}" -A ${{secrets.ACCOUNT_NAME}} -I ${{secrets.OAUTH_CLIENT_ID}} -S "${{secrets.OAUTH_CLIENT_SECRET}}" -P "$outputDir" -r "C:\results.json"
+      - name: Deploy
+        run: |
+                 # Deploy the Package
+                 & "C:\\uipathcli\\tools\\uipcli.exe" package deploy "$outputDir" "https://staging.uipath.com" "${{secrets.TENANT_NAME}}" -A ${{secrets.ACCOUNT_NAME}} -I ${{secrets.OAUTH_CLIENT_ID}} -S "${{secrets.OAUTH_CLIENT_SECRET}}" -o "Sandbox/Vikram Parolkar" --applicationScope "OR.Folders OR.BackgroundTasks OR.TestSets OR.TestSetExecutions OR.TestSetSchedules OR.Settings.Read OR.Monitoring OR.Robots.Read OR.Machines.Read OR.Execution OR.Assets OR.Users.Read OR.Jobs"
+                          
